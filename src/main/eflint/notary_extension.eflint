@@ -1,0 +1,46 @@
+
+// step 3a.
+Extend Fact [Article 1]
+  Conditioned by [Article 3]()
+.
+
+// step 3b.
+Event cancel-nim-delay
+  Related to citizen, mortgage
+  Creates undue-cancel-nim() When duty-to-cancel-nim()
+
+Fact undue-cancel-nim Identified by citizen * mortgage
+
+Duty duty-to-cancel-nim
+  Holder citizen
+  Claimant notary
+  Related to mortgage, occupant 
+    When citizen == mortgage.citizen && citizen == occupant.citizen
+  Violated when undue-cancel-nim()
+  Holds when nim-covered(mortgage) && mortgage.property != occupant.property
+.
+
+// step 4.
+Fact processing-fee Identified by 100
+
+Act enforce-cancel-nim
+  Actor enforcement-service
+  Recipient notary
+  Related to citizen, mortgage
+    When citizen == mortgage.citizen
+  Creates duty-to-pay()
+  Terminates undue-cancel-nim() && duty-to-cancel-nim()
+  Holds when undue-cancel-nim()
+
+Duty duty-to-pay
+  Holder citizen
+  Claimant enforcement-service
+  Related to processing-fee
+
+Act pay-processing-fee
+  Actor citizen
+  Recipient enforcement-service
+  Related to processing-fee
+  Terminates duty-to-pay()
+  Holds when duty-to-pay()
+.

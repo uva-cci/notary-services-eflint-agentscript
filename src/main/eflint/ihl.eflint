@@ -1,0 +1,98 @@
+
+// Type Declarations
+Fact target
+Fact value Identified by Int
+Fact parameter Identified by String
+Fact vciv Identified by Int
+Fact vma Identified by Int
+// Probability: 0..100
+Fact probability Identified by Int
+
+// An outcome for a target
+Fact outcome Identified by target * vciv * vma * probability
+// Parameters of a target
+Fact parameters Identified by target * parameter
+
+// Forbidden parameters
+Fact fpar Identified by parameter
+
+
+Fact coeff_value Identified by Int
+Fact proportionate_coeff Identified by coeff_value
+
+// Workaround variable
+Fact nothing Identified by "Nothing"
+
+Fact evciv Identified by target * value
+  Derived from evciv(target,value(Sum(Foreach outcome : (outcome.vciv * outcome.probability) When outcome.target == target) / 100))
+
+Fact evma Identified by target * value
+  Derived from evma(target,value(Sum(Foreach outcome : (outcome.vma * outcome.probability) When outcome.target == target) / 100))
+
+
+Placeholder other_target For target
+Placeholder other_value_one For value
+Placeholder other_value_two For value
+Placeholder other_value_three For value
+
+Fact eqma Identified by target * other_target 
+  Holds when
+     evma(target,value) &&
+     evma(other_target,other_value_one) &&
+     target != other_target  &&
+     value == other_value_one
+  
+
+Fact lessciv Identified by target * other_target 
+  Holds when
+     evciv(target,value) && evciv(other_target,other_value_one) && target != other_target  && value < other_value_one
+
+
+Fact morerel Identified by target * other_target 
+  Holds when
+     evciv(target,value) &&
+     evciv(other_target,other_value_one) &&
+     target != other_target &&
+     evma(target,other_value_two) &&
+     evma(other_target, other_value_three) && 
+     (value*other_value_two) >= (other_value_one*other_value_three)
+ 
+
+Fact proportionate Identified by target
+  Holds when
+     evciv(target,value) &&
+     evma(target,other_value_one) &&
+     proportionate_coeff(coeff_value) &&
+     other_value_one <= ((value * coeff_value) / 100)
+
+
+Fact dt Identified by target
+  Holds when !(Exists other_target : other_target != target && eqma(target,other_target) && lessciv(target,other_target))
+  
+
+Fact dp Identified by target
+  Holds when proportionate(target)
+
+
+Fact dmh Identified by target
+  Holds when !(Exists other_target : other_target != target && !morerel(target,other_target))
+
+Fact dtr Identified by target
+  Holds when !(Exists parameters : parameters.target == target &&  fpar(parameters.parameter))
+  
+
+Fact dav Identified by target
+  Holds when dp(target) && dt(target) && dmh(target) && dtr(target)
+
+Event calculate 
+Related to nothing
+Holds when True
+Creates (Foreach evma : value(evma.value)),
+        (Foreach evciv : value(evciv.value))
+
+ 
+
+
+
+
+
