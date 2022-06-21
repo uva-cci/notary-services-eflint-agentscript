@@ -46,8 +46,6 @@ Act issue_nim
     && mortgage.citizen == citizen
     && mortgage.property == property
 
-
-
 Duty duty_issue_nim
   Holder notary
   Claimant citizen
@@ -73,11 +71,12 @@ Act register_occupant
 //+property(B1,2).
 //+mortgage(Alice, property(A1,3)).
 //+occupant(Alice, property(A1,3)).
-//+occupant(Bob, property(B1,2)).
 //+mortgage(Bob, property(B1,2)).
-
+//+occupant(Bob, property(B1,2)).
 //+first_property(citizen("Alice"),property(address("A1"),value(3))). // provide external input
 //+first_property(citizen("Bob"),property(address("B1"),value(2))).   // provide external input
+
+
 
 //issue_nim(Notary, Bob, mortgage(Bob, property(B1,2)), property(B1,2)).
 
@@ -85,7 +84,7 @@ Act register_occupant
 
 //Fact undue_cancel_nim Identified by citizen * mortgage.
 
-//Duty duty_to_cancel_nim Holder citizen Claimant notary  Related to mortgage, occupant    When citizen == mortgage.citizen && citizen == occupant.citizen  Violated when undue_cancel_nim()  Holds when nim_covered(mortgage) && mortgage.property != occupant.property
+//Duty duty_to_cancel_nim Holder citizen Claimant notary  Related to mortgage, occupant When citizen == mortgage.citizen && citizen == occupant.citizen &&  occupant.citizen == mortgage.citizen Violated when undue_cancel_nim() Holds when (nim_covered(mortgage) && mortgage.property.address != occupant.property.address)
 
 //Event cancel_nim_delay  Related to citizen, mortgage  Creates undue_cancel_nim() When duty_to_cancel_nim().
 

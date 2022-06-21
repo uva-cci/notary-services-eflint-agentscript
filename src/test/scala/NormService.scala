@@ -6,7 +6,7 @@ import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.{ActorSystem, Scheduler}
 import akka.util.Timeout
 import asl.{notary, notary_service, notary_service_advisor}
-import bb.expstyla.exp.{IntTerm, StringTerm, StructTerm}
+import bb.expstyla.exp.{BooleanTerm, IntTerm, StringTerm, StructTerm}
 import infrastructure._
 import nl.uva.cci.normativeservices.EFlintBBFactory
 import org.scalatest.wordspec.AnyWordSpecLike
@@ -121,8 +121,26 @@ class NormService extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       Thread.sleep(3000)
     }
 
+    "add property" in {
+      val prob = testKit.createTestProbe[IMessage]()
+      mas.yellowPages.getAgent("NotaryService").get.asInstanceOf[AkkaMessageSource].address() ! BeliefMessage(
+        StructTerm("normative_fact", Seq(StructTerm("property", Seq(StringTerm("C1"), IntTerm(7))))), AkkaMessageSource(prob.ref)
+      )
 
-    "amend" in {
+      Thread.sleep(3000)
+    }
+
+
+    "Bob moving" in {
+      val prob = testKit.createTestProbe[IMessage]()
+      mas.yellowPages.getAgent("NotaryService").get.asInstanceOf[AkkaMessageSource].address() ! GoalMessage(
+        StructTerm("perform_normative", Seq(StructTerm("register_occupant", Seq(StringTerm("Amsterdam"),StringTerm("Bob"),StructTerm("property", Seq(StringTerm("A1"), IntTerm(3))))), BooleanTerm(true))), AkkaMessageSource(prob.ref)
+      )
+
+      Thread.sleep(3000)
+    }
+
+    "new rules come" in {
       val prob = testKit.createTestProbe[IMessage]()
 
       mas.yellowPages.getAgent("NotaryService").get.asInstanceOf[AkkaMessageSource].address() ! GoalMessage(
@@ -134,7 +152,7 @@ class NormService extends ScalaTestWithActorTestKit with AnyWordSpecLike {
       )
 
       mas.yellowPages.getAgent("NotaryService").get.asInstanceOf[AkkaMessageSource].address() ! GoalMessage(
-        StructTerm("amend_service", Seq(StringTerm("Duty duty_to_cancel_nim Holder citizen Claimant notary  Related to mortgage, occupant    When citizen == mortgage.citizen && citizen == occupant.citizen  Violated when undue_cancel_nim()  Holds when nim_covered(mortgage) && mortgage.property != occupant.property"))), AkkaMessageSource(prob.ref)
+        StructTerm("amend_service", Seq(StringTerm("Duty duty_to_cancel_nim Holder citizen Claimant notary  Related to mortgage, occupant When citizen == mortgage.citizen && citizen == occupant.citizen &&  occupant.citizen == mortgage.citizen Violated when undue_cancel_nim() Holds when (nim_covered(mortgage) && mortgage.property.address != occupant.property.address)"))), AkkaMessageSource(prob.ref)
       )
 
       mas.yellowPages.getAgent("NotaryService").get.asInstanceOf[AkkaMessageSource].address() ! GoalMessage(
