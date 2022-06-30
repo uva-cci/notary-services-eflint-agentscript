@@ -22,6 +22,11 @@
 +!perform_forced(A) =>
     #nl.uva.cci.NormUtils.perform(A).
 
+//
++!event(A) =>
+    #nl.uva.cci.NormUtils.perform(A).
+
+
 // checking if a fact holds (true)
 +?holds(A): holds(A) =>
     #coms.respond(true).
@@ -43,8 +48,11 @@
     #coms.inform("NotaryService", duty_issue_nim(N,C,mortgage(C,property(A,V)),property(A,V))).
 
 
++duty_to_cancel_nim(citizen(C),notary(N),mortgage(citizen(C),property(address(A),value(V))),occupant(citizen(C),property(address(AA),value(VV)))) =>
+    #coms.inform("NotaryService", duty_to_cancel_nim(C,N,mortgage(C,property(A,V)))).
 
-
++!handle_duty_violation(duty_to_cancel_nim(citizen(C),notary(N),mortgage(citizen(C),property(address(A),value(V))),occupant(citizen(C),property(address(AA),value(VV))))) =>
+    #coms.inform("NotaryService",violation(duty_to_cancel_nim(C,N,mortgage(C,property(A,V))))).
 
 
 

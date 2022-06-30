@@ -5,7 +5,6 @@ Fact value Identified by Int
 Fact parameter Identified by String
 Fact vciv Identified by Int
 Fact vma Identified by Int
-// Probability: 0..100
 Fact probability Identified by Int
 
 // An outcome for a target

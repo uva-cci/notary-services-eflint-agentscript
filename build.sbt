@@ -24,7 +24,7 @@ libraryDependencies += "nl.uva.sne.cci" % "agentscript-commons_2.13" % "0.42"
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.9" % Test
 libraryDependencies += "com.typesafe.akka" %% "akka-actor-testkit-typed" % AkkaVersion % Test
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.9" % Test
-
+libraryDependencies += "net.sourceforge.plantuml" % "plantuml" % "1.2021.12"
 
 libraryDependencies += "org.slf4j" % "slf4j-api" % "1.7.33"
 libraryDependencies += "org.slf4j" % "slf4j-log4j12" % "1.7.33"

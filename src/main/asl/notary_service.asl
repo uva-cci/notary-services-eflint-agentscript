@@ -1,11 +1,4 @@
-!init.
 
-// Init data
-+!init =>
-    +normative_fact(notary("Notary"));
-    +normative_fact(municipality("Amsterdam"));
-    +normative_fact(enforcement_service("Enforcer"))
-    .
 
 // for adding normative facts
 +normative_fact(Fact) =>
@@ -14,6 +7,10 @@
 // for removing normative facts
 -normative_fact(Fact) =>
     #coms.un_inform("NotaryServiceAdvisor", Fact).
+
++!normative_event(Event) =>
+    #println("Event:" + Event);
+    #coms.achieve("NotaryServiceAdvisor", event(Event)).
 
 // for performing acts (with permission as true)
 +!perform_normative(Act, true) =>
@@ -25,15 +22,15 @@
     #println("ACT NOT PERMITTED:" + Act).
 
 // perform only if enabled by asking
-+!perform_normative_if_enabled(Act) =>
++?perform_normative_if_enabled(Act) =>
     #println("Checking permission to perform: " + Act);
     Permission = #coms.ask("NotaryServiceAdvisor", permitted(Act));
-    !perform_normative(Act, Permission).
+    !perform_normative(Act, Permission);
+    #coms.respond(Permission).
 
 // for amending the service with phrases
 @atomic
 +!amend_service(Phrase) =>
-    #println("Amending service with: " + Phrase);
     #coms.achieve("NotaryServiceAdvisor", amend(Phrase)).
 
 
@@ -42,4 +39,7 @@
 +duty_issue_nim(N,C,mortgage(C,property(A,V)),property(A,V)) =>
     #coms.inform(N,duty_issue_nim(N,C,mortgage(C,property(A,V)),property(A,V))).
 
+// inform
++duty_to_cancel_nim(C,N,mortgage(C,property(A,V))) =>
+    #nl.uva.cci.normativeservices.Environment.logEvent(timer_started(cancel_nim_delay(C,mortgage(C,property(A,V))))).
 

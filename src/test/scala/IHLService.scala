@@ -1,24 +1,29 @@
 package nl.uva.cci
 
-import normativeservices.EFlintBBFactory
+import normativeservices.{EFlintBBFactory, Environment, PlantUMLCommunicationLogger}
 
 import akka.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import akka.actor.typed
 import akka.actor.typed.scaladsl.AskPattern._
 import akka.actor.typed.{ActorSystem, Scheduler}
 import akka.util.Timeout
-import asl.{ihl_advisor, notary_service_advisor}
-import bb.expstyla.exp.{BooleanTerm, IntTerm, StringTerm, StructTerm}
+import asl.{ih_scenario, ihl, ihl_advisor, ihl_device, notary_service_advisor}
+import bb.expstyla.exp.{BooleanTerm, IntTerm, StringTerm, StructTerm, VarTerm}
 import infrastructure._
 import org.scalatest.wordspec.AnyWordSpecLike
+import std.DefaultCommunications
 
 import _root_.scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContextExecutor, Future}
 
 class IHLService extends ScalaTestWithActorTestKit with AnyWordSpecLike {
 
-  import org.apache.log4j.BasicConfigurator
-  BasicConfigurator.configure()
+//  import org.apache.log4j.BasicConfigurator
+//  BasicConfigurator.configure()
+val logger = PlantUMLCommunicationLogger()
+  val loggableComs = new DefaultCommunications(logger)
+  Environment.comsLogger = logger
+  Environment.logActors(Seq("IHLDevice","IHLAdvisor"))
 
 
   val mas = MAS()
@@ -36,7 +41,9 @@ class IHLService extends ScalaTestWithActorTestKit with AnyWordSpecLike {
     // Ask the system to create agents
     val result: Future[IMessage] = system.ask(ref => AgentRequestMessage(
       Seq(
-        AgentRequest(new ihl_advisor(beliefBaseFactory = BB).agentBuilder, "IHLAdvisor", 1),
+        AgentRequest(new ihl_advisor(beliefBaseFactory = BB,coms = loggableComs).agentBuilder, "IHLAdvisor", 1),
+        AgentRequest(new ihl_device(coms = loggableComs).agentBuilder, "IHLDevice", 1),
+        AgentRequest(new ih_scenario(coms = loggableComs).agentBuilder, "IHLScenario", 1),
       ),ref))(timeout,scheduler)
     //wait for response
     println("WAITING RESPONSE")
@@ -60,26 +67,23 @@ class IHLService extends ScalaTestWithActorTestKit with AnyWordSpecLike {
     "exist in yellow pages if it was created before" in {
         assert(mas.yellowPages.getAgent("IHLAdvisor").isDefined)
     }
+
   }
 
 
   "ihl advisor" should {
-
     "init" in {
       val prob = testKit.createTestProbe[IMessage]()
-      mas.yellowPages.getAgent("IHLAdvisor").get.asInstanceOf[AkkaMessageSource].address()  ! GoalMessage(
-        StructTerm("init"),AkkaMessageSource(prob.ref)
+      mas.yellowPages.getAgent("IHLScenario").get.asInstanceOf[AkkaMessageSource].address()  ! GoalMessage(
+        StructTerm("init",Seq()),AkkaMessageSource(prob.ref)
       )
-
-      Thread.sleep(4000)
-
-      prob.receiveMessage()
+      Thread.sleep(20000)
+//      val message = prob.receiveMessage();
     }
-
     "return true if it has a fact" in {
       val prob = testKit.createTestProbe[IMessage]()
       mas.yellowPages.getAgent("IHLAdvisor").get.asInstanceOf[AkkaMessageSource].address()  ! AskMessage(
-        StructTerm("holds",Seq(StructTerm("target",Seq(StringTerm("X"))))),AkkaMessageSource(prob.ref)
+        StructTerm("holds",Seq(StructTerm("target",Seq(StringTerm("RelSat1_Heavy"))))),AkkaMessageSource(prob.ref)
       )
 
       val message = prob.receiveMessage();
@@ -115,13 +119,19 @@ class IHLService extends ScalaTestWithActorTestKit with AnyWordSpecLike {
     "have a dav after calculated" in {
       val prob = testKit.createTestProbe[IMessage]()
 
-      mas.yellowPages.getAgent("IHLAdvisor").get.asInstanceOf[AkkaMessageSource].address()  ! GoalMessage(
-        StructTerm("perform",Seq(StructTerm("calculate",Seq(StringTerm("Nothing"))))),AkkaMessageSource(prob.ref)
+      mas.yellowPages.getAgent("IHLDevice").get.asInstanceOf[AkkaMessageSource].address()  ! GoalMessage(
+        StructTerm("calculate",Seq()),AkkaMessageSource(prob.ref)
       )
+      Thread.sleep(10000)
+    }
 
-//      val message = prob.receiveMessage();
-//      assert(message.isInstanceOf[BeliefMessage])
-//      assert(message.asInstanceOf[BeliefMessage].p_content equals(BooleanTerm(false)))
+    "target correctly" in {
+      val prob = testKit.createTestProbe[IMessage]()
+      println ("targeting")
+      mas.yellowPages.getAgent("IHLDevice").get.asInstanceOf[AkkaMessageSource].address()  ! GoalMessage(
+        StructTerm("target",Seq(VarTerm("D"))),AkkaMessageSource(prob.ref)
+      )
+      Thread.sleep(20000)
     }
 
 

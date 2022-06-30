@@ -1,0 +1,148 @@
+Fact notary
+Fact citizen
+Fact address
+Fact municipality
+Fact enforcement_service
+Fact value Identified by Int
+Fact property Identified by address * value
+Fact mortgage Identified by citizen * property
+Fact nim_covered Identified by mortgage
+Fact occupant Identified by citizen * property
+
+Fact sum_property_value Identified by Int
+  Derived from Sum(Foreach property : property.value)
+
+Fact property_count Identified by Int
+  Derived from Count(Foreach property : property)
+
+Open Fact first_property Identified by citizen * property
+
+Fact property_mean_value Identified by Int
+  Derived from sum_property_value/property_count When property_count != 0
+
+Fact owned_property Identified by property
+  Holds when mortgage(citizen, property)
+
+Fact article_one
+  Identified by citizen * property
+  Holds when first_property(citizen, property)
+
+Fact article_two
+  Identified by property
+  Holds when property.value <= property_mean_value
+
+Fact article_three
+  Identified by citizen * property
+  Holds when occupant(citizen, property) && mortgage(citizen, property)
+
+Act issue_nim
+  Actor notary
+  Recipient citizen
+  Related to mortgage, property
+  Conditioned by article_one() && article_two()
+  Creates nim_covered(mortgage)
+  Holds when !nim_covered(mortgage)
+    && mortgage.citizen == citizen
+    && mortgage.property == property
+
+Act register_occupant
+  Actor municipality
+  Recipient citizen
+  Related to property
+  Conditioned by owned_property(property) && !occupant()
+  Creates occupant()
+  Terminates (Foreach occupant : occupant When occupant.citizen == citizen && occupant.property != property)
+  Holds when property
+.
+
+
++notary(Notary).
++citizen(Alice). +citizen(Bob). +citizen(Chloe).
++municipality(Amsterdam).
++enforcement_service(Enforcer).
++property(A1,3).
++property(B1,2).
++mortgage(Alice, property(A1,3)).
++occupant(Alice, property(A1,3)).
++mortgage(Bob, property(B1,2)).
+//?first_property(citizen("Alice"),property(address("A1"),value(3))). // need external input
+//?first_property(citizen("Bob"),property(address("B1"),value(2))).   // need external input
++first_property(citizen("Alice"),property(address("A1"),value(3))). // provide external input
++first_property(citizen("Bob"),property(address("B1"),value(2))).   // provide external input
+?first_property(citizen("Alice"),property(address("A1"),value(3))). // able to answer query
+?first_property(citizen("Bob"),property(address("B1"),value(2))).   // able to answer query
+?article_one(citizen("Alice"),property(address("A1"),value(3))).    // eligible to article 1
+?article_one(citizen("Bob"),property(address("B1"),value(2))).      // eligible to article 1
+
+
+// step 3a.
+Extend Fact article_one
+  Conditioned by article_three()
+.
+
+
+?article_one(citizen("Alice"),property(address("A1"),value(3))).    // still eligible, because Alice is a registered occupant
+?article_one(citizen("Bob"),property(address("B1"),value(2))).      // not eligible, because Bob is not a registered occupant
+?Enabled(issue_nim(Notary, Alice, mortgage(Alice, property(A1,3)), property(A1,3))).  // not permitted due to property value (article 2)
+?Enabled(issue_nim(Notary, Bob, mortgage(Bob, property(B1,2)), property(B1,2))).      // not permitted due to occupant (extended article 1)
++property(C1,7).
++mortgage(Bob, property(C1,7)).
+?Enabled(issue_nim(Notary, Alice, mortgage(Alice, property(A1,3)), property(A1,3))).  // permitted because the mean property value changes
+issue_nim(Notary, Alice, mortgage(Alice, property(A1,3)), property(A1,3)).  // compliant action
+
+
+// step 3b.
+Duty duty_to_cancel_nim
+  Holder citizen
+  Claimant notary
+  Related to mortgage, occupant
+    When citizen == mortgage.citizen && citizen == occupant.citizen
+  Violated when undue_cancel_nim()
+  Holds when nim_covered(mortgage) && mortgage.property != occupant.property
+
+Event cancel_nim_delay
+  Related to citizen, mortgage
+  Creates undue_cancel_nim() When duty_to_cancel_nim()
+
+Fact undue_cancel_nim Identified by citizen * mortgage
+.
+
+
+register_occupant(Amsterdam, Alice, property(B1,2)).  // Alice moves to a new adress
+?duty_to_cancel_nim(citizen("Alice"),notary("Notary"),mortgage(citizen("Alice"),property(address("A1"),value(3))),occupant(citizen("Alice"),property(address("B1"),value(2)))).  // not qualified, Alice thus has the duty to cancel NIM
+//cancel_nim_delay(Alice, mortgage(citizen("Alice"),property(address("A1"),value(3)))). // Alice forgets to cancel NIM
+cancel_nim_delay(Alice,mortgage(Alice,property(A1,3))).
+?Violated(duty_to_cancel_nim(citizen("Alice"),notary("Notary"),mortgage(citizen("Alice"),property(address("A1"),value(3))),occupant(citizen("Alice"),property(address("B1"),value(2))))).  // the duty is violated
+
+
+// step 4.
+Fact processing_fee Identified by 100
+
+Act enforce_cancel_nim
+  Actor enforcement_service
+  Recipient notary
+  Related to citizen, mortgage
+    When citizen == mortgage.citizen
+  Creates duty_to_pay()
+  Terminates undue_cancel_nim() , duty_to_cancel_nim()
+  Holds when undue_cancel_nim()
+
+Duty duty_to_pay
+  Holder citizen
+  Claimant enforcement_service
+  Related to processing_fee
+
+Act pay_processing_fee
+  Actor citizen
+  Recipient enforcement_service
+  Related to processing_fee
+  Terminates duty_to_pay()
+  Holds when duty_to_pay()
+.
+
+
+?Enabled(enforce_cancel_nim(Enforcer, notary, Alice, mortgage(citizen("Alice"),property(address("A1"),value(3))))).  // enforcer has the power to cancel Alice's NIM
+enforce_cancel_nim(Enforcer, notary, Alice, mortgage(citizen("Alice"),property(address("A1"),value(3)))).  // enforcer cancels the NIM
+?duty_to_pay(citizen("Alice"),enforcement_service("Enforcer"),processing_fee(100)).        // Alice needs to pay the processing fee
+pay_processing_fee(citizen("Alice"),enforcement_service("Enforcer"),processing_fee(100)).  // Alice pays the processing fee
+?duty_to_pay(citizen("Alice"),enforcement_service("Enforcer"),processing_fee(100)).        // The duty is terminated
